@@ -113,3 +113,9 @@ GET /weather?city=Bucharest
   "error": "City not found"
 }
 ```
+
+## Future improvements
+- Add 3-day forecast
+- Add support for multiple languages
+- Add error logging
+- Deploy the API online
