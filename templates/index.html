@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="overlay"></div>
+
+    <main class="app">
+        <div class="weather-card">
+            <div class="header">
+                <h1>Weather</h1>
+            </div>
+
+            <div class="search-section">
+                <input
+                    type="text"
+                    id="cityInput"
+                    placeholder="Enter city name"
+                    autocomplete="off"
+                >
+                <button id="searchBtn">Search</button>
+            </div>
+
+            <div id="result" class="result hidden"></div>
+        </div>
+    </main>
+
+    <script>
+    const cityInput = document.getElementById("cityInput");
+    const searchBtn = document.getElementById("searchBtn");
+    const resultDiv = document.getElementById("result");
+
+    cityInput.addEventListener("keypress", function(event) {
+        if (event.key === "Enter") {
+            getWeather();
+        }
+    });
+
+    searchBtn.addEventListener("click", getWeather);
+
+    function getWeatherIcon(code) {
+        if (code === 0) return "☀️";
+        if (code >= 1 && code <= 3) return "☁️";
+        if (code === 45 || code === 48) return "🌫️";
+        if (code >= 51 && code <= 67) return "🌧️";
+        if (code >= 71 && code <= 77) return "❄️";
+        if (code >= 80 && code <= 82) return "🌦️";
+        if (code >= 85 && code <= 86) return "🌨️";
+        if (code >= 95 && code <= 99) return "⛈️";
+        return "🌍";
+    }
+
+    function setDynamicBackground(code, isDay) {
+        const body = document.body;
+
+        if (code === 0) {
+            body.style.background = isDay === 1
+                ? "linear-gradient(135deg, #facc15, #f59e0b, #38bdf8)"
+                : "linear-gradient(135deg, #0f172a, #1e3a8a, #334155)";
+            return;
+        }
+
+        if (code >= 1 && code <= 3) {
+            body.style.background = isDay === 1
+                ? "linear-gradient(135deg, #94a3b8, #64748b, #cbd5e1)"
+                : "linear-gradient(135deg, #1e293b, #334155, #475569)";
+            return;
+        }
+
+        if (code === 45 || code === 48) {
+            body.style.background = "linear-gradient(135deg, #9ca3af, #6b7280, #d1d5db)";
+            return;
+        }
+
+        if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) {
+            body.style.background = "linear-gradient(135deg, #1d4ed8, #1e40af, #0f172a)";
+            return;
+        }
+
+        if ((code >= 71 && code <= 77) || (code >= 85 && code <= 86)) {
+            body.style.background = "linear-gradient(135deg, #e0f2fe, #bae6fd, #7dd3fc)";
+            return;
+        }
+
+        if (code >= 95 && code <= 99) {
+            body.style.background = "linear-gradient(135deg, #111827, #1f2937, #312e81)";
+            return;
+        }
+
+        body.style.background = "linear-gradient(135deg, #0f172a, #1d4ed8, #38bdf8)";
+    }
+
+    async function getWeather() {
+        const city = cityInput.value.trim();
+
+        if (!city) {
+            resultDiv.classList.remove("hidden");
+            resultDiv.innerHTML = `
+                <div class="error-message">
+                    Please enter a city name.
+                </div>
+            `;
+            return;
+        }
+
+        resultDiv.classList.remove("hidden");
+        resultDiv.innerHTML = `
+            <div class="loading">Loading weather data...</div>
+        `;
+
+        try {
+            const response = await fetch(`/weather?city=${encodeURIComponent(city)}`);
+            const data = await response.json();
+
+            if (data.error) {
+                resultDiv.innerHTML = `
+                    <div class="error-message">${data.error}</div>
+                `;
+                return;
+            }
+
+            const date = new Date(data.time);
+
+            const formattedTime = date.toLocaleString("en-GB", {
+                dateStyle: "medium",
+                timeStyle: "short"
+            });
+
+            const weatherIcon = getWeatherIcon(data.weather_code);
+            setDynamicBackground(data.weather_code, data.is_day);
+
+            resultDiv.innerHTML = `
+                <div class="weather-result">
+                    <div class="top-row">
+                        <div>
+                            <h2>${weatherIcon} ${data.city}, ${data.country}</h2>
+                            <p class="condition">${weatherIcon} ${data.weather_description}</p>
+                        </div>
+                        <div class="temperature">${data.temperature_c}°C</div>
+                    </div>
+
+                    <div class="weather-details">
+                        <div class="detail-box">
+                            <span class="label">Wind Speed</span>
+                            <span class="value">${data.wind_speed} km/h</span>
+                        </div>
+                        <div class="detail-box">
+                            <span class="label">Wind Direction</span>
+                            <span class="value">${data.wind_direction}°</span>
+                        </div>
+                        <div class="detail-box">
+                            <span class="label">Day / Night</span>
+                            <span class="value">${data.is_day === 1 ? "Day" : "Night"}</span>
+                        </div>
+                        <div class="detail-box">
+                            <span class="label">Last Update</span>
+                            <span class="value">${formattedTime}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } catch (error) {
+            resultDiv.innerHTML = `
+                <div class="error-message">
+                    Something went wrong. Please try again.
+                </div>
+            `;
+        }
+    }
+</script>
+</body>
+</html>
